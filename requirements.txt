@@ -1,5 +1,12 @@
 connexion[swagger-ui]
 
+alembic
 connexion>=2.6.0
 flask>=1.1.1
 flask-jwt-extended
+flask_login
+flask_migrate
+flask_sqlalchemy
+flask-marshmallow
+marshmallow-sqlalchemy
+marshmallow
