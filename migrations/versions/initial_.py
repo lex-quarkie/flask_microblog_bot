@@ -22,6 +22,7 @@ def upgrade():
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('username', sa.String(64), nullable=False),
                     sa.Column('posts', sa.String(64)),
+                    sa.Column('hash', sa.Text(), nullable=False),
                     sa.PrimaryKeyConstraint('id'),
                     sa.ForeignKeyConstraint(['posts'], ['posts.id'])
     )

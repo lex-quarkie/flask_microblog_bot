@@ -1,20 +1,12 @@
 from datetime import datetime
 from flask_login import UserMixin
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
+from app.main import ma
+
 Base = declarative_base()
-
-class User(UserMixin, Base):
-    __tablename__ = "users"
-    id = Column(Integer, primary_key=True)
-    username = Column(String(64), index=True, unique=True)
-    posts = relationship('Post', backref='author', lazy='dynamic')
-
-    def __repr__(self):
-        return f'<User #{self.id} ({self.username})>'
-
 
 class Post(Base):
     __tablename__ = "posts"
@@ -25,3 +17,26 @@ class Post(Base):
 
     def __repr__(self):
         return f'<Post #{self.id} by User #{self.user_id}'
+
+class PostSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Post
+
+
+class User(UserMixin, Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    username = Column(String(64), index=True, unique=True)
+    posts = relationship('Post', backref='author', lazy='dynamic')
+    hash = Column(Text, nullable=False)
+
+    def __repr__(self):
+        return f'<User #{self.id} ({self.username})>'
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
+
+post_schema = PostSchema()
+posts_schema = PostSchema(many=True)
+user_schema = UserSchema()

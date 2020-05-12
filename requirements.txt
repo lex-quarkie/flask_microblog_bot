@@ -1,6 +1,7 @@
 connexion[swagger-ui]
 
 alembic
+bcrypt
 connexion>=2.6.0
 flask>=1.1.1
 flask-jwt-extended

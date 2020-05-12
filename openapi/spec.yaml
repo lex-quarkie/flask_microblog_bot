@@ -17,6 +17,15 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/post_retrieve'
+  /signup:
+    post:
+      summary: User signup
+      description: User signup
+      operationId: app.views.user_signup
+      responses:
+        '200':
+          $ref: '#/components/responses/post_retrieve'
+
 
 components:
   parameters:
@@ -27,6 +36,15 @@ components:
       schema:
         type: integer
 
+  requestBodies:
+    user_signup:
+      required: true
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/user_signup'
+
+
   responses:
     post_retrieve:
       description: single post
@@ -34,6 +52,12 @@ components:
         application/json:
           schema:
             $ref : '#/components/schemas/single_post'
+    user:
+      description: single user
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/user'
 
   schemas:
     single_post:
@@ -47,3 +71,22 @@ components:
           format: date-time
         user_id:
           type: integer
+    user:
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        hash:
+          type: text
+
+    user_signup:
+      properties:
+        username:
+          type: string
+        password:
+          type: text
+      required:
+        - username
+        - password
+
