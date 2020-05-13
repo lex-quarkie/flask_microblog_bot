@@ -1,12 +1,24 @@
 from datetime import datetime
+
 from flask_login import UserMixin
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Binary,
+    String,
+    Table,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 
 from app.main import ma
 
 Base = declarative_base()
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -16,7 +28,8 @@ class Post(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     def __repr__(self):
-        return f'<Post #{self.id} by User #{self.user_id}'
+        return f"<Post #{self.id} by User #{self.user_id}"
+
 
 class PostSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
@@ -27,15 +40,26 @@ class User(UserMixin, Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     username = Column(String(64), index=True, unique=True)
-    posts = relationship('Post', backref='author', lazy='dynamic')
-    hash = Column(Text, nullable=False)
+    posts = relationship("Post", backref="author", lazy="dynamic")
+    hash = Column(Binary, nullable=False)
 
     def __repr__(self):
-        return f'<User #{self.id} ({self.username})>'
+        return f"<User #{self.id} ({self.username})>"
+
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+
+
+class Like(Base):
+    __tablename__ = "likes"
+    id = Column(Integer, primary_key=True)
+    __table_args__ = (UniqueConstraint("user_id", "post_id"),)
+    user_id = Column("user_id", Integer, ForeignKey("users.id"))
+    post_id = Column("post_id", Integer, ForeignKey("posts.id"))
+    timestamp = Column(DateTime, index=True, default=datetime.utcnow)
+
 
 post_schema = PostSchema()
 posts_schema = PostSchema(many=True)

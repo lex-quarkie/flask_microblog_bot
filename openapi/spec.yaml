@@ -7,7 +7,7 @@ servers:
   - url: http://0.0.0.0:5000
 
 paths:
-  /post/{post_id}:
+  /posts/{post_id}:
     get:
       summary: Display post
       description: Display post
@@ -16,7 +16,44 @@ paths:
         - $ref: '#/components/parameters/post_id'
       responses:
         '200':
-          $ref: '#/components/responses/post_retrieve'
+          $ref: '#/components/responses/single_post'
+  /posts:
+    post:
+      summary: Create post
+      description: Create post
+      operationId: app.views.create_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/create_post'
+      responses:
+        '201':
+          $ref: '#/components/responses/single_post'
+
+  /posts/{post_id}/like:
+    get:
+      summary: Like post
+      description: Like post
+      operationId: app.views.like_post
+      parameters:
+        - $ref: '#/components/parameters/post_id'
+      responses:
+        '201':
+           description: Empty
+
+  /posts/{post_id}/unlike:
+    get:
+      summary: Unlike post
+      description: Unlike post
+      operationId: app.views.unlike_post
+      parameters:
+        - $ref: '#/components/parameters/post_id'
+      responses:
+        '200':
+          description: Empty
+
   /signup:
     post:
       summary: User signup
@@ -24,8 +61,21 @@ paths:
       operationId: app.views.user_signup
       responses:
         '200':
-          $ref: '#/components/responses/post_retrieve'
-
+          $ref: '#/components/responses/access_token_response'
+        '400':
+          description: Error
+  /login:
+    post:
+      summary: User login
+      description: User login
+      operationId: app.views.login
+      responses:
+        '200':
+          $ref: '#/components/responses/access_token_response'
+        '400':
+          description: Error
+        '401':
+          description: Error
 
 components:
   parameters:
@@ -40,18 +90,31 @@ components:
     user_signup:
       required: true
       content:
-        application/vnd.api+json:
+        application/json:
           schema:
             $ref: '#/components/schemas/user_signup'
-
+    create_post_request:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/create_post'
 
   responses:
-    post_retrieve:
+    single_post:
       description: single post
       content:
         application/json:
           schema:
             $ref : '#/components/schemas/single_post'
+
+    access_token_response:
+      description: access token response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/access_token'
+
     user:
       description: single user
       content:
@@ -60,6 +123,10 @@ components:
             $ref: '#/components/schemas/user'
 
   schemas:
+    access_token:
+      properties:
+        access_token:
+          type: string
     single_post:
       properties:
         id:
@@ -71,6 +138,11 @@ components:
           format: date-time
         user_id:
           type: integer
+    create_post:
+      properties:
+        body:
+          type: string
+
     user:
       properties:
         id:
@@ -79,7 +151,6 @@ components:
           type: string
         hash:
           type: text
-
     user_signup:
       properties:
         username:
@@ -89,4 +160,3 @@ components:
       required:
         - username
         - password
-
