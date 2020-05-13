@@ -1,17 +1,19 @@
 import connexion
 import logging
 
-from flask import g
+from flask import g, request
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_bcrypt import Bcrypt
-from flask_login import current_user
+from flask_login import LoginManager
 from flask_jwt_extended import (
     JWTManager,
+    current_user,
     jwt_required,
-    create_access_token,
+    get_current_user,
     get_jwt_identity,
 )
+
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -38,19 +40,42 @@ def init_app():
     return app.app
 
 
+lm = LoginManager()
 db = SQLAlchemy(session_options={"autoflush": False})
 jwt = JWTManager()
 admin = Admin()
 ma = Marshmallow()
 app = init_app()
-
-
-@app.before_request
-def before_request():
-    g.user = current_user
-
+lm.init_app(app)
 
 from app import models, views
+
+
+@lm.user_loader
+def load_user(user_id):
+    return models.User.get(user_id)
+
+
+@app.after_request
+def after_request(response):
+    if g:
+        username = g.get("username")
+    if get_jwt_identity():
+        username = get_jwt_identity().get("username")
+
+    if username:
+        user = db.session.query(models.User).filter_by(username=username).first()
+        log_entry = models.UserLogEntry(
+            user_id=user.id, method=request.method, url=str(request.url_rule)
+        )
+        db.session.add(log_entry)
+        try:
+            db.session.commit()
+        except IntegrityError as ex:
+            db.session.rollback()
+
+    return response
+
 
 with app.app_context():
     admin.add_views(

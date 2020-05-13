@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from app.main import ma
+from app.main import db, ma
 
 Base = declarative_base()
 
@@ -29,6 +29,9 @@ class Post(Base):
 
     def __repr__(self):
         return f"<Post #{self.id} by User #{self.user_id}"
+
+    def likes(self):
+        return db.session.query(Like).filter_by(post_id=self.id).count()
 
 
 class PostSchema(ma.SQLAlchemyAutoSchema):
@@ -50,6 +53,15 @@ class User(UserMixin, Base):
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
+
+
+class UserLogEntry(Base):
+    __tablename__ = "user_log_entries"
+    id = Column(Integer, primary_key=True)
+    timestamp = Column(DateTime, index=True, default=datetime.utcnow)
+    user_id = Column("user_id", Integer, ForeignKey("users.id"))
+    method = Column(String)
+    url = Column(String, index=True)
 
 
 class Like(Base):

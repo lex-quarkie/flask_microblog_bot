@@ -1,12 +1,12 @@
 import bcrypt
 from connexion import NoContent
-
+from flask import g, request
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 
 from sqlalchemy.exc import IntegrityError
 
 from app.main import db
-from app.models import Like, Post, post_schema, posts_schema, User
+from app.models import Like, Post, post_schema, posts_schema, User, UserLogEntry
 
 
 def login(body):
@@ -17,6 +17,7 @@ def login(body):
 
     if bcrypt.checkpw(password.encode("utf-8"), user.hash):
         access_token = create_access_token(identity={"username": username})
+        g.username = username
         return {"access_token": access_token}, 200
 
     return {"error": "Bad credentials"}, 400
@@ -24,21 +25,26 @@ def login(body):
 
 def user_signup(body):
     username = body.get("username", None)
-    user = db.session.query(User).filter_by(username=username).one()
+    user = db.session.query(User).filter_by(username=username).first()
     if user:
         return {"error": f"User with username: {username} already exists"}, 400
-    password = body.get("password", None)
 
+    password = body.get("password", None)
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     user = User(username=username, hash=hashed)
     db.session.add(user)
+
     try:
         db.session.commit()
     except IntegrityError as ex:
         db.session.rollback()
         return {"error": f"Sqlalchemy Error {repr(ex)}"}, 400
-
+    log_entry = UserLogEntry(
+        user_id=user.id, method=request.method, url=str(request.url_rule)
+    )
+    db.session.add(log_entry)
+    db.session.commit()
     access_token = create_access_token(identity={"username": username})
     return {"access_token": access_token}, 201
 
@@ -47,6 +53,8 @@ def user_signup(body):
 def retrieve_post(post_id):
     post = db.session.query(Post).filter_by(id=post_id).one()
     result = post_schema.dump(post)
+    result["likes_count"] = post.likes()
+
     return result, 200
 
 
@@ -90,7 +98,31 @@ def unlike_post(post_id):
     return NoContent, 200
 
 
-# ● post creation
+@jwt_required
+def requestlog(user_id):
+    latest = (
+        db.session.query(UserLogEntry)
+        .filter_by(user_id=user_id)
+        .order_by(UserLogEntry.timestamp.desc())
+        .first()
+    )
+    login = (
+        db.session.query(UserLogEntry)
+        .filter(UserLogEntry.url.like("%login%"))
+        .filter_by(user_id=user_id).first()
+    )
+    signup = (
+        db.session.query(UserLogEntry)
+        .filter(UserLogEntry.url.like("%signup%"))
+        .filter_by(user_id=user_id).first()
+    )
+
+    result = {"latest_request": latest.timestamp,
+              "signup": signup.timestamp,
+              "login": login.timestamp}
+
+    return result, 200
+
 
 # ● analytics about how many likes was made. /api/analitics/?date_from=2020-02-02&date_to=2020-02-15 . API should return analytics aggregated by day.
 # ● user activity an endpoint which will show when user was login last time and when he
