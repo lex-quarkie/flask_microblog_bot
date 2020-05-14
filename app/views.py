@@ -47,7 +47,9 @@ def user_signup(body):
     db.session.add(log_entry)
     db.session.commit()
     access_token = create_access_token(identity={"username": username})
-    return {"access_token": access_token}, 201
+    return {"id": user.id,
+            "username": user.username,
+            "access_token": access_token }, 201
 
 
 @jwt_required
