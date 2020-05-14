@@ -1,4 +1,5 @@
 import connexion
+from datetime import datetime
 import logging
 
 from flask import g, request
@@ -8,9 +9,6 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_jwt_extended import (
     JWTManager,
-    current_user,
-    jwt_required,
-    get_current_user,
     get_jwt_identity,
 )
 
@@ -66,13 +64,13 @@ def after_request(response):
     if username:
         user = db.session.query(models.User).filter_by(username=username).first()
         log_entry = models.UserLogEntry(
-            user_id=user.id, method=request.method, url=str(request.url_rule)
+            user_id=user.id,
+            method=request.method,
+            url=str(request.url_rule),
+            timestamp=datetime.utcnow(),
         )
         db.session.add(log_entry)
-        try:
-            db.session.commit()
-        except IntegrityError as ex:
-            db.session.rollback()
+        db.session.commit()
 
     return response
 

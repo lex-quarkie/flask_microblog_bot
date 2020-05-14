@@ -8,8 +8,6 @@ from sqlalchemy import (
     Integer,
     Binary,
     String,
-    Table,
-    Text,
     UniqueConstraint,
 )
 from sqlalchemy.ext.declarative import declarative_base

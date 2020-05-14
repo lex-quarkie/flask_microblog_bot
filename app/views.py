@@ -1,10 +1,11 @@
 import bcrypt
+from datetime import datetime
 from connexion import NoContent
 from flask import g, request
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 
 from sqlalchemy.exc import IntegrityError
-
+import sqlalchemy as sa
 from app.main import db
 from app.models import Like, Post, post_schema, posts_schema, User, UserLogEntry
 
@@ -87,15 +88,36 @@ def unlike_post(post_id):
 
     current_user = get_jwt_identity()
     user = db.session.query(User).filter_by(username=current_user["username"]).one()
-    like = db.session.query(Like).filter_by(user_id=int(user.id), post_id=post.id).one()
+    like = (
+        db.session.query(Like).filter_by(user_id=int(user.id), post_id=post.id).first()
+    )
 
-    db.session.delete(like)
+    if like:
+        db.session.delete(like)
     try:
         db.session.commit()
     except IntegrityError as ex:
         db.session.rollback()
         return {"error": f"Sqlalchemy Error {repr(ex)}"}, 400
     return NoContent, 200
+
+
+def analytics(date_from, date_to):
+    from pudb import set_trace; set_trace()
+    date_rows = dict(
+        db.session.query(Like.timestamp, sa.func.count(Like.id))
+        .group_by(sa.func.date(Like.timestamp))
+        .filter(
+            Like.timestamp >= datetime.strptime(date_from, "%Y-%m-%d"),
+            Like.timestamp <= datetime.strptime(date_to, "%Y-%m-%d"),
+        )
+        .all()
+    )
+    for key in date_rows:
+        if isinstance(key, datetime):
+            date_rows[key.strftime("%Y-%m-%d").split(" ")[0]] = date_rows.pop(key)
+            # ^ dirty hack. SQLite stores DateTime as String, so DateTime=>cast(Date) doesn't work properly
+    return date_rows
 
 
 @jwt_required
@@ -109,23 +131,25 @@ def requestlog(user_id):
     login = (
         db.session.query(UserLogEntry)
         .filter(UserLogEntry.url.like("%login%"))
-        .filter_by(user_id=user_id).first()
+        .filter_by(user_id=user_id)
+        .order_by(UserLogEntry.timestamp.desc())
+        .first()
     )
     signup = (
         db.session.query(UserLogEntry)
         .filter(UserLogEntry.url.like("%signup%"))
-        .filter_by(user_id=user_id).first()
+        .filter_by(user_id=user_id)
+        .order_by(UserLogEntry.timestamp.desc())
+        .first()
     )
 
-    result = {"latest_request": latest.timestamp,
-              "signup": signup.timestamp,
-              "login": login.timestamp}
+    result = {
+        "latest_request": latest.timestamp,
+        "signup": signup.timestamp,
+        "login": login.timestamp,
+    }
 
     return result, 200
-
-
-# ● analytics about how many likes was made. /api/analitics/?date_from=2020-02-02&date_to=2020-02-15 . API should return analytics aggregated by day.
-# ● user activity an endpoint which will show when user was login last time and when he
 
 
 @jwt_required

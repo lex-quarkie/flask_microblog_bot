@@ -7,6 +7,20 @@ servers:
   - url: http://0.0.0.0:5000
 
 paths:
+  /analytics:
+    get:
+      summary: Get analytics
+      description: Get analytics
+      operationId: app.views.analytics
+      parameters:
+        - $ref: '#/components/parameters/date_from'
+        - $ref: '#/components/parameters/date_to'
+      responses:
+        '200':
+          description: Empty
+        '400':
+          description: Empty
+
   /posts/{post_id}:
     get:
       summary: Display post
@@ -17,6 +31,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/single_post'
+
   /posts:
     post:
       summary: Create post
@@ -88,13 +103,26 @@ paths:
 
 components:
   parameters:
+    date_from:
+      in: query
+      name: date_from
+      schema:
+        type: string
+        format: date
+        default: '1900-01-01'
+    date_to:
+      in: query
+      name: date_to
+      schema:
+        type: string
+        format: date
+        default: '2090-01-01'
     post_id:
       in: path
       name: post_id
       required: true
       schema:
         type: integer
-
     user_id:
       in: path
       name: user_id
