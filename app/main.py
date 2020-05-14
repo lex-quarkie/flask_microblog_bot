@@ -46,8 +46,6 @@ ma = Marshmallow()
 app = init_app()
 lm.init_app(app)
 
-from app import models, views
-
 
 @lm.user_loader
 def load_user(user_id):
@@ -74,7 +72,11 @@ def after_request(response):
 
     return response
 
+
 with app.app_context():
+    from app import models
+
     admin.add_views(
-        ModelView(models.Post, db.session), ModelView(models.User, db.session)
+        ModelView(models.Post, db.session),
+        ModelView(models.User, db.session)
     )

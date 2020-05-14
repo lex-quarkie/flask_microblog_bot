@@ -1,15 +1,22 @@
 import random
-from config import (API_URL, NUMBER_OF_USERS, MAX_POSTS_PER_USER, MAX_LIKES_PER_USER)
+import string
+from config import usernames
 
 
-usernames = ["Daredevil", "Dazzler",
-             "Decepticon", "Devastator",
-             "Diablo", "Domino", "Doppelganger",
-             "Dreadnought", "Electro", "Elektra",
-             "Enchantress", "Eradicator", "Excalibur"]
+def generate_username():
+    return random.choice(usernames) + str(random.randint(0, 99))
 
 
-def generate_post_body(count=5):
+def pw_gen(size=8, chars=string.ascii_letters + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
+
+def find_obj(list_of_dicts, key, value):
+    gen_iter = next(item for item in list_of_dicts if item[key] == str(value))
+    return gen_iter
+
+
+def generate_post_body():
     pangrams = ['The quick brown fox jumps over the lazy dog.',
                 'Jackdaws love my big sphinx of quartz.',
                 'Τάχιστη αλώπηξ βαφής ψημένη γη, δρασκελίζει υπέρ νωθρού κυνός.',
@@ -24,7 +31,6 @@ def generate_post_body(count=5):
                 'La cigüeña tocaba cada vez mejor el saxofón y el búho pedía kiwi y queso.',
                 'El jefe buscó el éxtasis en un imprevisto baño de whisky y gozó como un duque.',
                 'Exhíbanse politiquillos zafios, con orejas kilométricas y uñas de gavilán.',
-                'El cadáver de Wamba, rey godo de España, fue exhumado y trasladado en una caja de zinc que pesó un kilo.',
                 'El pingüino Wenceslao hizo kilómetros bajo exhaustiva lluvia y frío, añoraba a su querido cachorro.',
                 'El veloz murciélago hindú comía feliz cardillo y kiwi.',
                 'La cigüeña tocaba el saxofón detrás del palenque de paja.',
@@ -44,15 +50,4 @@ def generate_post_body(count=5):
                 'Эх, чужд кайф, сплющь объём вши, грызя цент.',
                 'Чушь: гид вёз кэб цапф, юный жмот съел хрящ.'
                 ]
-    return ''.join(random.choices(pangrams, k=count))
-
-def generate_user_creds(count=NUMBER_OF_USERS, user_creds=[]):
-    for _ in range(count):
-        username = random.choice(usernames) + str(random.randint(0, 99))
-        password = pw_gen()
-        user_creds.append({'username': username,
-                           'password': password})
-    return user_creds
-
-def check_token_or_get_token(creds):
-
+    return ''.join(random.choices(pangrams, k=random.randint(3, 10)))

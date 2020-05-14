@@ -49,10 +49,9 @@ def user_signup(body):
     access_token = create_access_token(identity={"username": username})
     return {"id": user.id,
             "username": user.username,
-            "access_token": access_token }, 201
+            "access_token": access_token}, 201
 
 
-@jwt_required
 def retrieve_post(post_id):
     post = db.session.query(Post).filter_by(id=post_id).one()
     result = post_schema.dump(post)
@@ -60,7 +59,6 @@ def retrieve_post(post_id):
     return result, 200
 
 
-@jwt_required
 def retrieve_all_posts():
     posts = db.session.query(Post).all()
     result = posts_schema.dump(posts)
@@ -105,7 +103,6 @@ def unlike_post(post_id):
 
 
 def analytics(date_from, date_to):
-    from pudb import set_trace; set_trace()
     date_rows = dict(
         db.session.query(Like.timestamp, sa.func.count(Like.id))
         .group_by(sa.func.date(Like.timestamp))

@@ -1,93 +1,201 @@
 import logging
-import random
 import requests
-import string
+import random
 
-from helpers import generate_post_body, generate_user_creds
-from config import (API_URL, NUMBER_OF_USERS, MAX_POSTS_PER_USER, MAX_LIKES_PER_USER)
+from helpers import generate_username, pw_gen, generate_post_body
+from config import (API_URL,
+                    MAX_POSTS_PER_USER, MAX_LIKES_PER_USER,
+                    NUMBER_OF_LIKES, NUMBER_OF_POSTS, NUMBER_OF_USERS)
 
-logger=logging.basicConfig(level=logging.INFO)
-
-user_list = [{'id': '9',
-              'username': 'quarkie_1337',
-              'password': '1ee7f00d',
-              'access_token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1ODk0NDk2MjMsIm5iZiI6MTU4OTQ0OTYyMywian'
-              'RpIjoiNTU5Y2ZmYzAtZjZiYS00MjdhLWIwYWMtM2FmN2FhYzY0NzEzIiwiZXhwIjoxNTg5NDUwNTIzLCJpZGVudGl0eSI6eyJ1c2Vyb'
-              'mFtZSI6InF1YXJraWVfMTMzNyJ9LCJmcmVzaCI6ZmFsc2UsInR5cGUiOiJhY2Nlc3MifQ.xdIpdvG2Y3azhXsInfK_71CEMgyBftKFv'
-              'O0N1PXgr7M}]'
-               }]
-
-users_likes_posts = {}
-headers = {'Accept': '*/*',}
-
-def pw_gen(size=8, chars=string.ascii_letters + string.digits):
-	return ''.join(random.choice(chars) for _ in range(size))
+logger = logging.basicConfig(level=logging.DEBUG)
 
 
-def signup(creds={}, headers=headers):
-    url = f'{API_URL}/signup'
-    r = requests.post(url=url,
-                      headers=headers,
-                      json=creds)
-    logging.info((r.status_code,r.json()))
-    if r.status_code == 200:
-        creds['access_token'] = r.json()['access_token']
-        creds['user_id'] = r.json()['id']
-    return creds
+class GlobalState(object):  # singleton
+    def __init__(self):
+        self.get_posts_ids()
+        self.posts_count_on_start = self.posts_count()
+        self.added_posts_count = 0
+        self.likes_added = 0
+        self.bots = []
+
+    def __new__(cls):
+        if not hasattr(cls, "instance"):
+            cls.instance = super(GlobalState, cls).__new__(cls)
+        return cls.instance
+
+    def get_posts_ids(self):
+        url = f"{API_URL}/posts"
+        r = requests.get(url=url, json={})
+        if r.status_code == 200:
+            result = []
+            for post in r.json():
+                result.append(post.pop("id"))
+            self.posts_ids = list(set(result))
+
+    def posts_count(self):
+        return len(self.posts_ids)
+
+    def added_posts_count(self):
+        return len(self.posts_ids)
+
+    def add_post_id(self, id):
+        self.posts_ids.append(id)
+
+    def bots_count(self):
+        return len(self.bots)
+
+    def likes_count(self):
+        return self.likes_added
+
+    def script_stats(self):
+        return {'added_posts': self.added_posts_count,
+                'created_users': self.bots_count(),
+                'likes_count': self.likes_count()}
+
+    def get_bot(self, id):
+        return self.bots[id]
+
+    def add_bot(self, bot):
+        if isinstance(bot, BotUser) and bot not in self.bots:
+            self.bots.append(bot)
+            logging.info("Bot added to global state")
+        else:
+            logging.info("Got a problem while adding Bot to global state")
+
+    def create_bot(self):
+        new_bot = BotUser()
+        self.add_bot(new_bot)
+        new_bot.signup()
+
+        return new_bot
+
+    def select_bot(self, stats_key):
+        def map_param_to_stats_key_name(key=stats_key):
+            return {'likes_count': MAX_LIKES_PER_USER,
+                    'posts_count': MAX_POSTS_PER_USER}[key]
+
+        bots_weights = [bot.stats[stats_key] + random.randint(100, 110)  # random weights initialization
+                        for bot in self.bots
+                        if bot.stats[stats_key] < map_param_to_stats_key_name()]
+        if bots_weights:
+            bot = random.choices(self.bots, weights=bots_weights[::-1]).pop()
+        else:
+            bot = self.create_bot()
+
+        return bot
 
 
-def login(creds={}, headers=headers):
-    url = f'{API_URL}/login'
-    r = requests.post(url=url,
-                      headers=headers,
-                      json=creds)
-    logging.info((r.status_code,r.json()))
-    creds['access_token'] = r.json()['access_token']
-    return r.status_code
+class BotUser(object):
+    def __init__(
+        self,
+        registered=False,
+        headers={"Accept": "*/*", },
+        stats={"posts_count": 0, "likes_count": 0},
+    ):
+        self.headers = headers
+        self.registered = registered
+        self.username = generate_username()
+        self.password = pw_gen()
+        self.access_token = ""
+        self.stats = stats
+
+    def signup(self):
+        logging.debug(f"Bot >> username: {self.username} Starting signup process")
+        r = requests.post(
+            url=f"{API_URL}/signup",
+            json={"username": self.username, "password": self.password},
+            headers=self.headers,
+        )
+
+        if r.status_code == 201:
+            self.registered = True
+            self.access_token = r.json()["access_token"]
+            self.headers["Authorization"] = f"Bearer {self.access_token}"
+            self.user_id = r.json()["id"]
+            logging.info(f"Signup: OK, username: {self.username}")
+        else:
+            logging.info(f"Problem while signing up user with username {self.username}")
+            logging.debug(r.json())
+
+    def login(self):
+        logging.debug(f"Bot >> username: {self.username} starting login process")
+        r = requests.post(
+            url=f"{API_URL}/login",
+            json={"username": self.username, "password": self.password},
+            headers=self.headers,
+        )
+        self.access_token = r.json().get("access_token")
+        if not self.headers.get("Authorization"):
+            logging.warning("Access token not found: Abort")
+            return
+        if r.status_code == 200:
+            self.access_token = r.json()["access_token"]
+            logging.info(f"Login: OK, username: {self.username}")
+        else:
+            logging.info(f"Problem while logging up user with username {self.username}")
+            logging.debug(r.json())
+
+    def create_post(self, body=None):
+        logging.debug(f"Bot >> username: {self.username} starting create post process")
+        r = requests.post(
+            url=f"{API_URL}/posts",
+            headers=self.headers,
+            json={"body": generate_post_body() if body is None else body},
+        )
+
+        if not self.headers.get("Authorization"):
+            logging.warning("Access token not found: Abort")
+            return
+        if r.status_code == 201:
+            self.stats["posts_count"] += 1
+            gs().added_posts_count += 1
+            post_id = r.json()["id"]
+            gs().posts_ids.append(post_id)
+            logging.info(f"Create post: OK, username: {self.username}, post_id: {post_id}")
+
+    def like(self, post_id):
+        logging.debug(f"Bot >> username: {self.username} starting like process")
+        r = requests.get(url=f'{API_URL}/posts/{post_id}/like',
+                         headers=self.headers)
+        logging.info(r.status_code)
+        if r.status_code == 200:
+            self.stats["likes_count"] += 1
+            gs().likes_count += 1
 
 
-def create_post(headers, access_token):
-    headers['Authorization'] = f'Bearer {access_token}'
-    url = f'{API_URL}/posts'
-    post_json= {"body": generate_post_body()}
+def gs():
+    import gc
 
-    r = requests.post(url=url,
-                      headers=headers,
-                      json=post_json)
-    logging.info((r.status_code,r.json()))
+    global_state = [obj for obj in gc.get_objects() if isinstance(obj, GlobalState)]
+    return global_state[0]
 
 
-def like_post(user_id, post_id, access_token):
-    headers['Authorization'] = f'Bearer {access_token}'
-    url = f'{API_URL}/posts/{post_id}/like'
-    r = requests.get(url=url,
-                      headers=headers)
-    logging.info(r.status_code)
-    if r.status_code == 200:
-        if users_likes_posts.get('user_id'):
-            users_likes_posts[user_id] = users_likes_posts.get('user_id', {'post_id': post_id, 'likes_count': 1})
-        else
+def create_posts():
+    bot = gs().select_bot('posts_count')
+    bot.create_post()
 
-def admin(headers=headers):
-    url = f'{API_URL}/admin'
-    r = requests.get(url=url,
-                     headers=headers)
+
+def like_posts():
+    post_id = random.choice(gs().posts_ids)
+    bot = gs().select_bot('likes_count')
+    bot.like(post_id)
+
+
+def create_bots(count):
+    for _ in range(count):
+        gs().create_bot()
 
 
 def main():
+    global_state = GlobalState()
+    create_bots(NUMBER_OF_USERS)
+    while global_state.added_posts_count < NUMBER_OF_POSTS:
+        create_posts()
+    while global_state.likes_added < NUMBER_OF_LIKES:
+        like_posts()
 
-    # print(generate_post_body())
-    # # creds = (generate_user_creds(1))
-    # signup(user_creds[0])
-
-    # add_token_to_creds(user_creds[0], login(user_creds[0]))
-    # create_post(headers, access_token=user_creds[0]['access_token'])
-    like_post(1, access_token=user_creds[0]['access_token'])
-
-
-
-main()
+    logging.info(global_state.script_stats())
 
 
-# pool = Pool(processes=10)
-# async_result = pool.imap_unordered(parse_id, id_lst)
+if __name__ == "__main__":
+    main()
