@@ -3,9 +3,6 @@ from datetime import datetime
 import logging
 
 from flask import g, request
-from flask_admin import Admin
-from flask_admin.contrib.sqla import ModelView
-from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_jwt_extended import (
     JWTManager,
@@ -33,7 +30,6 @@ def init_app():
     db.init_app(app.app)
     Migrate(app.app, db)
     jwt.init_app(app.app)
-    admin.init_app(app.app)
 
     return app.app
 
@@ -41,7 +37,6 @@ def init_app():
 lm = LoginManager()
 db = SQLAlchemy(session_options={"autoflush": False})
 jwt = JWTManager()
-admin = Admin()
 ma = Marshmallow()
 app = init_app()
 lm.init_app(app)
@@ -73,9 +68,3 @@ def after_request(response):
         db.session.commit()
 
     return response
-
-
-with app.app_context():
-    admin.add_views(
-        ModelView(models.Post, db.session), ModelView(models.User, db.session)
-    )
