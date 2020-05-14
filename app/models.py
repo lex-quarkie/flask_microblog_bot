@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from flask_login import UserMixin
+from marshmallow import fields
 from sqlalchemy import (
     Column,
     DateTime,
@@ -33,6 +34,8 @@ class Post(Base):
 
 
 class PostSchema(ma.SQLAlchemyAutoSchema):
+    likes_count = fields.Function(lambda obj: obj.likes())
+
     class Meta:
         model = Post
 

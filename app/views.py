@@ -56,15 +56,15 @@ def user_signup(body):
 def retrieve_post(post_id):
     post = db.session.query(Post).filter_by(id=post_id).one()
     result = post_schema.dump(post)
-    result["likes_count"] = post.likes()
 
     return result, 200
 
 
 @jwt_required
-def retrieve_all_posts(post_id):
+def retrieve_all_posts():
     posts = db.session.query(Post).all()
     result = posts_schema.dump(posts)
+
     return result, 200
 
 

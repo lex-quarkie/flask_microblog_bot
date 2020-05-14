@@ -17,7 +17,7 @@ user_list = [{'id': '9',
               'O0N1PXgr7M}]'
                }]
 
-user_likes_posts = {}
+users_likes_posts = {}
 headers = {'Accept': '*/*',}
 
 def pw_gen(size=8, chars=string.ascii_letters + string.digits):
@@ -45,6 +45,7 @@ def login(creds={}, headers=headers):
     creds['access_token'] = r.json()['access_token']
     return r.status_code
 
+
 def create_post(headers, access_token):
     headers['Authorization'] = f'Bearer {access_token}'
     url = f'{API_URL}/posts'
@@ -55,14 +56,17 @@ def create_post(headers, access_token):
                       json=post_json)
     logging.info((r.status_code,r.json()))
 
-def like_post(user_post_id, access_token):
+
+def like_post(user_id, post_id, access_token):
     headers['Authorization'] = f'Bearer {access_token}'
     url = f'{API_URL}/posts/{post_id}/like'
     r = requests.get(url=url,
                       headers=headers)
     logging.info(r.status_code)
     if r.status_code == 200:
-        user_likes_posts['']
+        if users_likes_posts.get('user_id'):
+            users_likes_posts[user_id] = users_likes_posts.get('user_id', {'post_id': post_id, 'likes_count': 1})
+        else
 
 def admin(headers=headers):
     url = f'{API_URL}/admin'

@@ -31,8 +31,15 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/single_post'
-
   /posts:
+    get:
+      summary: Display all posts
+      description: Display all posts
+      operationId: app.views.retrieve_all_posts
+      responses:
+        '200':
+          $ref: '#/components/responses/multiple_posts'
+
     post:
       summary: Create post
       description: Create post
@@ -151,6 +158,14 @@ components:
         application/json:
           schema:
             $ref : '#/components/schemas/single_post'
+    multiple_posts:
+      description: single post
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/single_post'
 
     access_token_response:
       description: access token response
