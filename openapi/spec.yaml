@@ -31,6 +31,7 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/single_post'
+
   /posts:
     get:
       summary: Display all posts
@@ -75,6 +76,7 @@ paths:
       responses:
         '200':
           description: Empty
+
   /requestlog/{user_id}:
     get:
       summary: Get user log
@@ -95,6 +97,7 @@ paths:
           $ref: '#/components/responses/access_token_response'
         '400':
           description: Error
+
   /login:
     post:
       summary: User login
@@ -166,7 +169,6 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/single_post'
-
     access_token_response:
       description: access token response
       content:

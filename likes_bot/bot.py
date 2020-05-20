@@ -69,14 +69,15 @@ class GlobalState(object):  # singleton
 
         return new_bot
 
-    def select_bot(self, stats_key):
-        def map_param_to_stats_key_name(key=stats_key):
+    def select_bot(self, attr_name=None):
+        def map_param_to_attr_name(key=attr_name):
             return {'likes_count': MAX_LIKES_PER_USER,
                     'posts_count': MAX_POSTS_PER_USER}[key]
 
-        bots_weights = [bot.stats[stats_key] + random.randint(100, 110)  # random weights initialization
+
+        bots_weights = [getattr(bot, attr_name) + random.randint(100, 110)  # random weights initialization
                         for bot in self.bots
-                        if bot.stats[stats_key] < map_param_to_stats_key_name()]
+                        if getattr(bot, attr_name) < map_param_to_attr_name()]
         if bots_weights:
             bot = random.choices(self.bots, weights=bots_weights[::-1]).pop()
         else:
@@ -89,77 +90,80 @@ class BotUser(object):
     def __init__(
         self,
         registered=False,
-        headers={"Accept": "*/*", },
-        stats={"posts_count": 0, "likes_count": 0},
+        headers=None,
+        posts_count=0,
+        likes_count=0
     ):
-        self.headers = headers
+        if not headers:
+            self.headers = {"Accept": "*/*", }
         self.registered = registered
         self.username = generate_username()
         self.password = pw_gen()
-        self.access_token = ""
-        self.stats = stats
+        self.access_token = ''
+        self.posts_count = posts_count
+        self.likes_count = likes_count
 
     def signup(self):
-        logging.debug(f"Bot >> username: {self.username} Starting signup process")
+        logging.debug(f'Bot >> username: {self.username} Starting signup process')
         r = requests.post(
-            url=f"{API_URL}/signup",
-            json={"username": self.username, "password": self.password},
+            url=f'{API_URL}/signup',
+            json={'username': self.username, 'password': self.password},
             headers=self.headers,
         )
 
         if r.status_code == 201:
             self.registered = True
-            self.access_token = r.json()["access_token"]
-            self.headers["Authorization"] = f"Bearer {self.access_token}"
-            self.user_id = r.json()["id"]
-            logging.info(f"Signup: OK, username: {self.username}")
+            self.access_token = r.json()['access_token']
+            self.headers["Authorization"] = f'Bearer {self.access_token}'
+            self.user_id = r.json()['id']
+            logging.info(f'Signup: OK, username: {self.username}')
         else:
-            logging.info(f"Problem while signing up user with username {self.username}")
+            logging.info(f'Problem while signing up user with username {self.username}')
             logging.debug(r.json())
 
     def login(self):
-        logging.debug(f"Bot >> username: {self.username} starting login process")
+        logging.debug(f'Bot >> username: {self.username} starting login process')
         r = requests.post(
-            url=f"{API_URL}/login",
-            json={"username": self.username, "password": self.password},
+            url=f'{API_URL}/login',
+            json={'username': self.username, 'password': self.password},
             headers=self.headers,
         )
-        self.access_token = r.json().get("access_token")
+        self.access_token = r.json().get('access_token')
         if not self.headers.get("Authorization"):
-            logging.warning("Access token not found: Abort")
+            logging.warning('Access token not found: Abort')
             return
         if r.status_code == 200:
-            self.access_token = r.json()["access_token"]
-            logging.info(f"Login: OK, username: {self.username}")
+            self.access_token = r.json()['access_token']
+            logging.info(f'Login: OK, username: {self.username}')
         else:
-            logging.info(f"Problem while logging up user with username {self.username}")
+            logging.info(f'Problem while logging up user with username {self.username}')
             logging.debug(r.json())
 
     def create_post(self, body=None):
-        logging.debug(f"Bot >> username: {self.username} starting create post process")
+        logging.debug(f'Bot >> username: {self.username} starting create post process')
         r = requests.post(
-            url=f"{API_URL}/posts",
+            url=f'{API_URL}/posts',
             headers=self.headers,
-            json={"body": generate_post_body() if body is None else body},
+            json={'body': generate_post_body() if body is None else body},
         )
 
         if not self.headers.get("Authorization"):
-            logging.warning("Access token not found: Abort")
+            logging.warning('Access token not found: Abort')
             return
         if r.status_code == 201:
-            self.stats["posts_count"] += 1
+            self.posts_count += 1
             gs().added_posts_count += 1
-            post_id = r.json()["id"]
+            post_id = r.json()['id']
             gs().posts_ids.append(post_id)
-            logging.info(f"Create post: OK, username: {self.username}, post_id: {post_id}")
+            logging.info(f'Create post: OK, username: {self.username}, post_id: {post_id}')
 
     def like(self, post_id):
-        logging.debug(f"Bot >> username: {self.username} starting like process")
+        logging.debug(f'Bot >> username: {self.username} starting like process')
         r = requests.get(url=f'{API_URL}/posts/{post_id}/like',
                          headers=self.headers)
         logging.info(r.status_code)
         if r.status_code == 200:
-            self.stats["likes_count"] += 1
+            self.likes_count += 1
             gs().likes_count += 1
 
 
@@ -197,5 +201,5 @@ def main():
     logging.info(global_state.script_stats())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -11,11 +11,6 @@ def pw_gen(size=8, chars=string.ascii_letters + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-def find_obj(list_of_dicts, key, value):
-    gen_iter = next(item for item in list_of_dicts if item[key] == str(value))
-    return gen_iter
-
-
 def generate_post_body():
     pangrams = ['The quick brown fox jumps over the lazy dog.',
                 'Jackdaws love my big sphinx of quartz.',
