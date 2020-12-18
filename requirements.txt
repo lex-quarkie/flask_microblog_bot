@@ -1,8 +1,12 @@
 connexion[swagger-ui]
 
 alembic
+bcrypt
+
 connexion>=2.6.0
 flask>=1.1.1
+flask_admin
+
 flask-jwt-extended
 flask_login
 flask_migrate
@@ -10,3 +14,5 @@ flask_sqlalchemy
 flask-marshmallow
 marshmallow-sqlalchemy
 marshmallow
+psycopg2-binary==2.8.4
+pudb

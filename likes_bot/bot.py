@@ -1,4 +1,5 @@
 import logging
+
 import requests
 import random
 
@@ -10,53 +11,46 @@ from config import (API_URL,
 logger = logging.basicConfig(level=logging.DEBUG)
 
 
-class GlobalState(object):  # singleton
+class GlobalState(object):  #singleton
     def __init__(self):
-        self.get_posts_ids()
-        self.posts_count_on_start = self.posts_count()
+        self.api_url = f'http://{API_URL}'
+
+        self.set_posts_ids()
+        self.set_posts_ids()
+        self.posts_count_on_start = len(self.posts_ids)
         self.added_posts_count = 0
         self.likes_added = 0
         self.bots = []
 
-    def __new__(cls):
+    def __new__(cls, **kwargs):
         if not hasattr(cls, "instance"):
             cls.instance = super(GlobalState, cls).__new__(cls)
+            cls.instance.api_url = API_URL
         return cls.instance
 
-    def get_posts_ids(self):
-        url = f"{API_URL}/posts"
+    def set_posts_ids(self):
+        url = f"{self.api_url}/posts"
         r = requests.get(url=url, json={})
         if r.status_code == 200:
+            logging.debug('Got posts id')
             result = []
             for post in r.json():
-                result.append(post.pop("id"))
+                result.append(post.get("id"))
             self.posts_ids = list(set(result))
-
-    def posts_count(self):
-        return len(self.posts_ids)
-
-    def added_posts_count(self):
-        return len(self.posts_ids)
 
     def add_post_id(self, id):
         self.posts_ids.append(id)
 
-    def bots_count(self):
-        return len(self.bots)
-
-    def likes_count(self):
-        return self.likes_added
-
     def script_stats(self):
-        return {'added_posts': self.added_posts_count,
-                'created_users': self.bots_count(),
-                'likes_count': self.likes_count()}
+        return {'added_posts': len(self.posts_ids),
+                'created_users': len(self.bots),
+                'likes_count': self.likes_added}
 
     def get_bot(self, id):
         return self.bots[id]
 
     def add_bot(self, bot):
-        if isinstance(bot, BotUser) and bot not in self.bots:
+        if bot not in self.bots:
             self.bots.append(bot)
             logging.info("Bot added to global state")
         else:
@@ -73,7 +67,6 @@ class GlobalState(object):  # singleton
         def map_param_to_attr_name(key=attr_name):
             return {'likes_count': MAX_LIKES_PER_USER,
                     'posts_count': MAX_POSTS_PER_USER}[key]
-
 
         bots_weights = [getattr(bot, attr_name) + random.randint(100, 110)  # random weights initialization
                         for bot in self.bots
@@ -96,6 +89,8 @@ class BotUser(object):
     ):
         if not headers:
             self.headers = {"Accept": "*/*", }
+
+        self.api_url = f'http://{API_URL}'
         self.registered = registered
         self.username = generate_username()
         self.password = pw_gen()
@@ -106,7 +101,7 @@ class BotUser(object):
     def signup(self):
         logging.debug(f'Bot >> username: {self.username} Starting signup process')
         r = requests.post(
-            url=f'{API_URL}/signup',
+            url=f'{self.api_url}/signup',
             json={'username': self.username, 'password': self.password},
             headers=self.headers,
         )
@@ -121,10 +116,10 @@ class BotUser(object):
             logging.info(f'Problem while signing up user with username {self.username}')
             logging.debug(r.json())
 
-    def login(self):
+    def login(self):  # используется когда стоит декоратор @jwt_required ??
         logging.debug(f'Bot >> username: {self.username} starting login process')
         r = requests.post(
-            url=f'{API_URL}/login',
+            url=f'{self.api_url}/login',
             json={'username': self.username, 'password': self.password},
             headers=self.headers,
         )
@@ -141,10 +136,12 @@ class BotUser(object):
 
     def create_post(self, body=None):
         logging.debug(f'Bot >> username: {self.username} starting create post process')
+        if not body:
+            body = generate_post_body()
         r = requests.post(
-            url=f'{API_URL}/posts',
+            url=f'{self.api_url}/posts',
             headers=self.headers,
-            json={'body': generate_post_body() if body is None else body},
+            json={'body': body},
         )
 
         if not self.headers.get("Authorization"):
@@ -159,12 +156,13 @@ class BotUser(object):
 
     def like(self, post_id):
         logging.debug(f'Bot >> username: {self.username} starting like process')
-        r = requests.get(url=f'{API_URL}/posts/{post_id}/like',
+        r = requests.get(url=f'{self.api_url}/posts/{post_id}/like',
                          headers=self.headers)
-        logging.info(r.status_code)
-        if r.status_code == 200:
+        if r.status_code == 201:
             self.likes_count += 1
-            gs().likes_count += 1
+            gs().likes_added += 1
+        else:
+            from pudb import set_trace; set_trace()
 
 
 def gs():

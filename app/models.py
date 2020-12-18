@@ -14,15 +14,14 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
-from app.main import db, ma
+from app import db, ma
 
 Base = declarative_base()
-
 
 class Post(Base):
     __tablename__ = "posts"
     id = Column(Integer, primary_key=True)
-    body = Column(String(140), nullable=False)
+    body = Column(String(1000), nullable=False)
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -68,7 +67,6 @@ class UserLogEntry(Base):
 class Like(Base):
     __tablename__ = "likes"
     id = Column(Integer, primary_key=True)
-    __table_args__ = (UniqueConstraint("user_id", "post_id"),)
     user_id = Column("user_id", Integer, ForeignKey("users.id"))
     post_id = Column("post_id", Integer, ForeignKey("posts.id"))
     timestamp = Column(DateTime, index=True, default=datetime.utcnow)

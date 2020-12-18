@@ -1,14 +1,20 @@
 import bcrypt
 from datetime import datetime
+import logging
+
 from connexion import NoContent
 from flask import g, request
 from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
 
+
 from sqlalchemy.exc import IntegrityError
 import sqlalchemy as sa
-from app.main import db
+
+
+from app import db
 from app.models import Like, Post, post_schema, posts_schema, User, UserLogEntry
 
+# logger = logging.basicConfig(level=logging.INFO, filename='log.log')
 
 def login(body):
     username = body.get("username")
@@ -26,11 +32,13 @@ def login(body):
 
 def user_signup(body):
     username = body.get("username", None)
+    password = body.get("password", None)
+
+    logging.info(f"U: {username}, P: {password}")
     user = db.session.query(User).filter_by(username=username).first()
     if user:
         return {"error": f"User with username: {username} already exists"}, 400
 
-    password = body.get("password", None)
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
 
     user = User(username=username, hash=hashed)
@@ -46,7 +54,7 @@ def user_signup(body):
     )
     db.session.add(log_entry)
     db.session.commit()
-    access_token = create_access_token(identity={"username": username})
+    access_token = create_access_token(identity={"username": username},)
     return {"id": user.id,
             "username": user.username,
             "access_token": access_token}, 201
@@ -115,7 +123,6 @@ def analytics(date_from, date_to):
     for key in date_rows:
         if isinstance(key, datetime):
             date_rows[key.strftime("%Y-%m-%d").split(" ")[0]] = date_rows.pop(key)
-            # ^ dirty hack. SQLite stores DateTime as String, so DateTime=>cast(Date) doesn't work properly
     return date_rows
 
 

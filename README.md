@@ -1,10 +1,9 @@
 This repository contains assignment task and made in educational purposes only.
-Due to the lack of time, it can has some security flaws. Do not use it in production.
+Due the lack of time, it can has some security flaws. Do not use it in production.
 
 * Admin-panel is accessible on {{api_url}}/admin.
 It is intended for view-only permissions, and can be accessed without any authentication.
 * Response validation is disabled,  response bodies and statuscodes not described in specification exactly "as is"
-* This repository using SQLite DB, likes aggregating for date in /analytics endpoint done in not optimal way.(PostgreSQL will do the job)
 * Likes count of one user to one post is not limited.
 
 
@@ -56,3 +55,5 @@ Notes:
 non-specified requirements (including chosen tech, third party apps, etc), however
 ● every decision must be explained and backed by arguments in the interview
 ● Result should be sent by providing a Git url. This is a mandatory requirement.
+
+API docs(SwaggerUI) can be found at %WEB_BIND%/api/ui

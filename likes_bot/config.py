@@ -1,4 +1,7 @@
-API_URL = 'http://0.0.0.0:5000'
+import os
+
+API_URL = os.getenv('WEB_BIND', 'http://0.0.0.0:80')
+
 NUMBER_OF_USERS = 10
 NUMBER_OF_LIKES = 100
 NUMBER_OF_POSTS = 3
