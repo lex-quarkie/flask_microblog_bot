@@ -1,10 +1,25 @@
 This repository contains assignment task and made in educational purposes only.
-Due the lack of time, it can has some security flaws. Do not use it in production.
+It can has some security flaws. Do not use it in production.
 
 * Admin-panel is accessible on {{api_url}}/admin.
 It is intended for view-only permissions, and can be accessed without any authentication.
 * Response validation is disabled,  response bodies and statuscodes not described in specification exactly "as is"
 * Likes count of one user to one post is not limited.
+
+For starting API:
+```bash
+docker-compose up
+```
+
+API docs(SwaggerUI) can be found at 0.0.0.0/api/ui
+
+Bot can be started by entering a docker-container(eg. 111222ab) running flask_app like this:
+
+```bash
+docker exec -it 111222ab /bin/bash
+cd likes_bot/
+python bot.py
+```
 
 
 *Assignment task*
@@ -55,5 +70,3 @@ Notes:
 non-specified requirements (including chosen tech, third party apps, etc), however
 ● every decision must be explained and backed by arguments in the interview
 ● Result should be sent by providing a Git url. This is a mandatory requirement.
-
-API docs(SwaggerUI) can be found at %WEB_BIND%/api/ui
