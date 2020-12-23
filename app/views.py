@@ -1,4 +1,5 @@
 import bcrypt
+from collections import Counter
 from datetime import datetime
 import logging
 
@@ -14,7 +15,6 @@ import sqlalchemy as sa
 from app import db
 from app.models import Like, Post, post_schema, posts_schema, User, UserLogEntry
 
-# logger = logging.basicConfig(level=logging.INFO, filename='log.log')
 
 def login(body):
     username = body.get("username")
@@ -111,9 +111,10 @@ def unlike_post(post_id):
 
 
 def analytics(date_from, date_to):
+    processed_rows = []
     date_rows = dict(
         db.session.query(Like.timestamp, sa.func.count(Like.id))
-        .group_by(sa.func.date(Like.timestamp))
+        .group_by(Like.timestamp)
         .filter(
             Like.timestamp >= datetime.strptime(date_from, "%Y-%m-%d"),
             Like.timestamp <= datetime.strptime(date_to, "%Y-%m-%d"),
@@ -121,10 +122,10 @@ def analytics(date_from, date_to):
         .all()
     )
     for key in date_rows:
-        if isinstance(key, datetime):
-            date_rows[key.strftime("%Y-%m-%d").split(" ")[0]] = date_rows.pop(key)
-    return date_rows
+        processed_rows.append(key.strftime("%Y-%m-%d").split("Z")[0])
 
+    c = Counter(processed_rows)
+    return c
 
 @jwt_required
 def requestlog(user_id):

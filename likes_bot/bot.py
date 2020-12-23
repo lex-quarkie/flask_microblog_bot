@@ -161,8 +161,7 @@ class BotUser(object):
         if r.status_code == 201:
             self.likes_count += 1
             gs().likes_added += 1
-        else:
-            from pudb import set_trace; set_trace()
+
 
 
 def gs():
